@@ -43,8 +43,6 @@ public class DriveSubsystem extends SubsystemBase {
 
   private final RelativeEncoder leftLeaderEncoder;
   private final RelativeEncoder rightLeaderEncoder;
-  private final RelativeEncoder leftFollowerEncoder;
-  private final RelativeEncoder rightFollowerEncoder;
 
   private static Pigeon2 drivePigeon;
 
@@ -83,8 +81,6 @@ public class DriveSubsystem extends SubsystemBase {
   
       leftLeaderEncoder = leftLeader.getEncoder();
       rightLeaderEncoder = rightLeader.getEncoder();
-      leftFollowerEncoder = leftFollower.getEncoder();
-      rightFollowerEncoder = rightFollower.getEncoder();
       
   
       var encoderConfig = new EncoderConfig();
@@ -137,10 +133,7 @@ public class DriveSubsystem extends SubsystemBase {
     poseEstimator.update(getHeading(), leftLeaderEncoder.getPosition(), rightLeaderEncoder.getPosition());
     SmartDashboard.putNumber("Left leader velocity: ", leftLeaderEncoder.getVelocity());
     SmartDashboard.putNumber("Right leader velocity: ", rightLeaderEncoder.getVelocity());
-    SmartDashboard.putNumber("Left follower velocity: ", leftFollowerEncoder.getVelocity());
-    SmartDashboard.putNumber("Right follower velocity:", rightFollowerEncoder.getVelocity());
     SmartDashboard.putNumber("Pigeon Info", drivePigeon.getYaw().getValueAsDouble());
-    SmartDashboard.putNumber("Pigeon Rotation2d", drivePigeon.getRotation2d().getRadians());
     field.setRobotPose(poseEstimator.getEstimatedPosition());
     
   }
@@ -199,6 +192,18 @@ public class DriveSubsystem extends SubsystemBase {
 
   public Pose2d getPose(){
     return poseEstimator.getEstimatedPosition();
+  }
+
+  public void rotate(double targetHeading){
+    double output = alignController.calculate(
+      drivePigeon.getYaw().getValueAsDouble(), targetHeading);
+    
+    if (!alignController.atSetpoint()){
+      robotDrive.arcadeDrive(0, output );
+    } else {
+      robotDrive.arcadeDrive(0, 0);
+      opConstants.autoStep ++;
+    }
   }
 
   public Rotation2d getHeading(){

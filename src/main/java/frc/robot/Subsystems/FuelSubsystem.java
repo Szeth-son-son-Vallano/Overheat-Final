@@ -86,7 +86,7 @@ public class FuelSubsystem extends SubsystemBase {
       // This method will be called once per scheduler run
       SmartDashboard.putNumber("MotorSpeed", rightShooter.getVelocity().getValueAsDouble());
       SmartDashboard.putNumber("IndexerSpeed", indexer.getVelocity().getValueAsDouble());
-      SmartDashboard.putNumber("TargetSpeed", FuelConstants.targetSpeed); 
+      SmartDashboard.putNumber("TargetSpeed", FuelConstants.targetVelocity); 
       SmartDashboard.putBoolean("is the Intake Stuck? ", isStuck);
     }
   

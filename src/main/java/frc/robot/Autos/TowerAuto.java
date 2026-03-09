@@ -9,6 +9,7 @@ import frc.robot.Subsystems.ClimbSubsystem;
 import frc.robot.Subsystems.DriveSubsystem;
 import frc.robot.Subsystems.FuelSubsystem;
 import frc.robot.Subsystems.VisionSubsystem;
+import frc.robot.Constants.VisionConstants;
 import frc.robot.Constants.opConstants;
 import frc.robot.Constants.towerAutoConstants;
 
@@ -37,24 +38,28 @@ public class TowerAuto extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-
-    if (opConstants.autoStep == 1){
-      m_drive.driveToTarget(towerAutoConstants.drive1Meters);
-      m_climb.climbUp();
-    } else if (opConstants.autoStep == 2){
-      m_drive.stopDrive();
-      m_drive.align(m_vision.hasRecentTarget(), m_vision.isAligned());
-      m_fuel.autoShoot();
-    } else if (opConstants.autoStep == 3){
-      m_fuel.stop();
-      m_drive.align(m_vision.hasRecentTarget(), m_vision.isAligned());
-    } else if (opConstants.autoStep == 4){
-      m_drive.driveToTarget(towerAutoConstants.drive2Meters);     
-    } else if (opConstants.autoStep == 5){
-      m_climb.climbDown();
-    } else {
-      m_drive.align(m_vision.hasRecentTarget(),m_vision.isAligned());
-    } 
+    switch (opConstants.autoStep) {
+      case 0:
+        m_drive.driveToTarget(towerAutoConstants.drive2Meters);
+        break;
+      case 1:
+        m_drive.align(m_vision.hasRecentTarget(), m_vision.isAligned());
+        FuelSubsystem.getShooterSpeedFromDistance(VisionConstants.kDistanceToTarget);
+        if (m_vision.isAligned()){opConstants.autoStep++;}
+        break;
+      case 2:
+        m_fuel.autoShoot();
+        break;
+      case 3:
+        m_drive.rotate(0);
+        break;
+      case 4 :
+        m_drive.driveToTarget(VisionConstants.kDistanceToTarget - 4);
+      default:
+      case 5:
+        m_climb.climbDown();
+        break;
+    }
   }
 
   // Called once the command ends or is interrupted.
