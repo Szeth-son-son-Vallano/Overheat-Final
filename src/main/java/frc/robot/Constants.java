@@ -29,7 +29,6 @@ public class Constants {
         public static final double kDriveI = 0;
         public static final double kDriveD = 0.45;
 
-        public static double distanceToTarget = 0;
     }
 
     public class VisionConstants {

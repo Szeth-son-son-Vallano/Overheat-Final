@@ -25,7 +25,7 @@ public class FuelSubsystem extends SubsystemBase {
   public static boolean isStuck = false;
   
   private final Timer timer = new Timer();
-  private static boolean autoShootStarted = false;
+  private boolean autoShootStarted = false;
   
     /** Creates a new FuelSubsystem. */
     public FuelSubsystem() {

@@ -158,7 +158,7 @@ public class DriveSubsystem extends SubsystemBase {
       distanceToTarget
        );
     if (distanceTraveled < distanceToTarget)
-    {robotDrive.arcadeDrive(-output, 0);
+    {robotDrive.arcadeDrive(output, 0);
   } else {
     robotDrive.arcadeDrive(0, 0);
     opConstants.autoStep ++;
