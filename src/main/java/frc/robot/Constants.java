@@ -35,24 +35,16 @@ public class Constants {
     public class VisionConstants {
         public static final String kCameraName = "Luma P1";
 
-        public static final double camPitch = 0; //Camera angle
+        public static final double camPitch = 0.20; //Camera angle
         public static final double camYaw = 0; //Camera position
         public static final double camRoll = 0; // Camera Roll
 
-        public static final double camX = 0.3;
+        public static final double camX = 0.0;
         public static final double camY = 0.5;
         public static final double camZ = 0.3;
 
-        public enum AlignMode {
-            sideHub,
-            centerHub
-        }
+        public static final double cameraOffset = 0;
 
-        public static AlignMode alignMode = AlignMode.centerHub;
-
-        public static double kTargetYaw;
-        public static double kTargetPitch;
-        public static double kTargetHeight;
         public static double kDistanceToTarget;
         // Camera position
 
@@ -81,11 +73,16 @@ public class Constants {
         public static final double kShooterV = 0.115; //
         public static final double kShooterA = 0.08; //
 
+        // Tune This ASAP
         public static final double[][] kShooterTable = {
             {1.0,60.0}, // {distance meters, RPS}
+            {1.5,65.0},
             {2.0,70.0},
+            {2.5,75.0},
             {3.0,80.0},
+            {3.5,85.0},
             {4.0,90.0},
+            {4.5,95.0},
             {5.0,100.0}
         };
     }

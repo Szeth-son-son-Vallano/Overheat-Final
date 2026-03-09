@@ -129,9 +129,9 @@ public class VisionSubsystem extends SubsystemBase {
           VisionConstants.kDistanceToTarget = closestDist;
         } 
       } 
-      if (matchingTags > 0){
+      if (matchingTags > VisionConstants.cameraOffset){
           avgYaw = avgYaw/matchingTags;
-          VisionConstants.rotationOutput = alignControl.calculate(avgYaw,0);
+          VisionConstants.rotationOutput = alignControl.calculate(avgYaw,VisionConstants.cameraOffset);
           }
       
       estConsumer.accept(est.estimatedPose.toPose2d(), est.timestampSeconds, estStdDevs);

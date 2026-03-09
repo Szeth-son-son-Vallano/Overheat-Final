@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.FuelConstants;
+import frc.robot.Constants.VisionConstants;
 import frc.robot.Constants.opConstants;
 
 public class FuelSubsystem extends SubsystemBase {
@@ -22,6 +23,9 @@ public class FuelSubsystem extends SubsystemBase {
   private final TalonFX indexer;
   private final VelocityVoltage shooterVoltage = new VelocityVoltage(0).withSlot(0);
   public static boolean isStuck = false;
+  
+  private final Timer timer = new Timer();
+  private static boolean autoShootStarted = false;
   
     /** Creates a new FuelSubsystem. */
     public FuelSubsystem() {
@@ -87,6 +91,7 @@ public class FuelSubsystem extends SubsystemBase {
     }
   
     public void shoot(){
+      FuelConstants.targetVelocity = getShooterSpeedFromDistance(VisionConstants.kDistanceToTarget);
       leftShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
       rightShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
     if (leftShooter.getVelocity().getValueAsDouble() < -FuelConstants.targetVelocity + 1){
@@ -110,6 +115,21 @@ public class FuelSubsystem extends SubsystemBase {
       rightShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.shootingIntakeSpeed));
     }
 
+    public static double getShooterSpeedFromDistance(double distance){
+      double[][] table = FuelConstants.kShooterTable;
+
+      if (distance <= table[0][0]){return table [0][1];}
+      if (distance >= table[table.length - 1][0]){return table[table.length - 1][1];}
+
+      for (int i = 0; i < table.length -1; i++){
+        if (distance >= table[i][0] && distance <= table[i + 1][0]){
+          double t = (distance - table [i][0]) / (table[i + 1][0] - table [i][0]) ;
+          return table [i][1] + t *(table[i + 1][1] - table [i][1]);
+        }
+      }
+      return table[table.length - 1][1];
+    }
+
  public void stop(){
   leftShooter.set(0);
   rightShooter.set(0);
@@ -117,8 +137,10 @@ public class FuelSubsystem extends SubsystemBase {
  }
 
  public void autoShoot (){
-  var timer = new Timer();
-  timer.restart();
+  if (!autoShootStarted){
+    timer.restart();
+    autoShootStarted = true;
+  }
   if (timer.get() < 4){
     if (timer.get() < 1.5){
       leftShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
@@ -132,6 +154,7 @@ public class FuelSubsystem extends SubsystemBase {
     leftShooter.stopMotor();
     rightShooter.stopMotor();
     indexer.stopMotor();
+    autoShootStarted = false;
     opConstants.autoStep++;
   }
  }
