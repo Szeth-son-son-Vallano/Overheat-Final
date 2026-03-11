@@ -18,7 +18,6 @@ import frc.robot.Commands.IntakeCommand;
 import frc.robot.Commands.OutakeCommand;
 import frc.robot.Commands.PassCommand;
 import frc.robot.Commands.ReturnToZeroCommand;
-import frc.robot.Commands.SetZeroCommand;
 import frc.robot.Commands.ShootCommand;
 import frc.robot.Constants.ClimbConstants;
 import frc.robot.Constants.FuelConstants;
@@ -69,14 +68,14 @@ public class RobotContainer {
     m_controller.y().whileTrue(
       new OutakeCommand(m_fuel, FuelConstants.targetSpeed));
 
-    m_controller.a().onTrue(
+    m_opController.rightTrigger().onTrue(
       new ClimbUpCommand(m_climb)); // Declimb
 
-    m_controller.b().onTrue(
-      new ClimbDownCommand(m_climb)); // Climb
+    m_opController.leftTrigger().onTrue(
+      new ClimbDownCommand(m_climb, ClimbConstants.climbL2Pos)); // Climb
 
-    m_controller.x().onTrue(
-      new SetZeroCommand(m_climb)); // Returns to zero from any position if the zero is well setted
+    m_opController.x().onTrue(
+      new ClimbDownCommand(m_climb, ClimbConstants.climbDownPos)); // Returns to zero from any position if the zero is well setted
 
     m_opController.rightBumper().onTrue(
       new ReturnToZeroCommand(m_climb, -ClimbConstants.climbUpPos)); // Returns to zero from declimb pos

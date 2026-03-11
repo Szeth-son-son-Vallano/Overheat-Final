@@ -16,6 +16,7 @@ public class ClimbSubsystem extends SubsystemBase {
   /** Creates a new ClimbSubsystem. */
   private final TalonFX climbMotor;
   private final PositionVoltage climbVoltage = new PositionVoltage(0).withSlot(1);
+  public static boolean isFinished = false;
   public ClimbSubsystem() {
     climbMotor = new TalonFX(ClimbConstants.climberID);
 
@@ -48,8 +49,8 @@ public class ClimbSubsystem extends SubsystemBase {
     climbMotor.setControl(climbVoltage.withPosition(ClimbConstants.climbUpPos)); // get the claw in position
   }
 
-  public void climbDown (){
-    climbMotor.setControl(climbVoltage.withPosition(ClimbConstants.climbDownPos)); // start to climb
+  public void climbDown (double targetPos){
+    climbMotor.setControl(climbVoltage.withPosition(targetPos)); // start to climb
   }
 
   public void setZero(){

@@ -13,6 +13,9 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.EncoderConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+import com.revrobotics.spark.FeedbackSensor;
+import com.revrobotics.spark.SparkBase;
+import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkMax;
 
 import edu.wpi.first.math.Matrix;
@@ -60,6 +63,9 @@ public class DriveSubsystem extends SubsystemBase {
   private static DifferentialDrivePoseEstimator poseEstimator;
   private static DifferentialDriveKinematics driveKinematics;
 
+  private final SparkClosedLoopController leftController;
+  private final SparkClosedLoopController rightController;
+
   private static double distanceTraveled;
   
   
@@ -91,12 +97,23 @@ public class DriveSubsystem extends SubsystemBase {
       .smartCurrentLimit(50)
       .idleMode(IdleMode.kCoast)
       .apply(encoderConfig);
+
+      leftConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).
+      p(DriveConstants.kDriveP).i(DriveConstants.kDriveI).d(DriveConstants.kDriveD).
+      outputRange(-1, 1);
       
       var rightConfig = 
       new SparkMaxConfig()
       .inverted(true)
       .smartCurrentLimit(50).idleMode(IdleMode.kCoast)
       .apply(encoderConfig);
+
+      rightConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).
+      p(DriveConstants.kDriveP).i(DriveConstants.kDriveI).d(DriveConstants.kDriveD).
+      outputRange(-1, 1);
+
+      leftController = leftLeader.getClosedLoopController();
+      rightController = rightLeader.getClosedLoopController();
       
   
       leftLeader.configure(leftConfig,ResetMode.kResetSafeParameters,PersistMode.kPersistParameters);
@@ -134,6 +151,7 @@ public class DriveSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Left leader velocity: ", leftLeaderEncoder.getVelocity());
     SmartDashboard.putNumber("Right leader velocity: ", rightLeaderEncoder.getVelocity());
     SmartDashboard.putNumber("Pigeon Info", drivePigeon.getYaw().getValueAsDouble());
+    SmartDashboard.putNumber ("Distance Traveled", distanceTraveled);
     field.setRobotPose(poseEstimator.getEstimatedPosition());
     
   }
@@ -142,27 +160,36 @@ public class DriveSubsystem extends SubsystemBase {
     robotDrive.arcadeDrive(xSpeed, xRotation,squared);
   }
 
-  public void driveToTarget(double distanceToTarget){
-    distanceTraveled = (rightLeaderEncoder.getPosition() + leftLeaderEncoder.getPosition()) /2;
-    
+  public void driveToTarget(double currentPos, double distanceToTarget){
+    distanceTraveled = leftLeaderEncoder.getPosition();
+   leftController.setSetpoint(distanceToTarget, SparkBase.ControlType.kPosition);
+   rightController.setSetpoint(distanceToTarget, SparkBase.ControlType.kPosition);
 
-    Double output = driveController.calculate(
-      distanceTraveled,
-      distanceToTarget
-       );
-    if (distanceTraveled < distanceToTarget)
-    {robotDrive.arcadeDrive(output, 0);
-  } else {
-    robotDrive.arcadeDrive(0, 0);
-    opConstants.autoStep ++;
+   double leftError = Math.abs(currentPos - distanceToTarget);
+   double rightError = Math.abs(currentPos - distanceToTarget);
+
+   if (leftError < 0.1 && rightError < 0.1){
+    leftLeader.set(0);
+    rightLeader.set(0);
+    opConstants.autoStep++;
+   }
   }
-  }
+  
 
   public void resetOdometry (){
     leftLeaderEncoder.setPosition(0);
     rightLeaderEncoder.setPosition(0);
     poseEstimator.resetPosition(
       getHeading(),0.0,0.0, new Pose2d());
+  }
+
+  public double getEncoderPose(){
+    double leftPos = leftLeaderEncoder.getPosition();
+    double rightPos = rightLeaderEncoder.getPosition();
+
+    double currentPos = (leftPos + rightPos) / 2;
+
+    return currentPos;
   }
 
   public void resetGyro (){

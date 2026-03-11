@@ -23,8 +23,9 @@ public class FuelSubsystem extends SubsystemBase {
   private final TalonFX indexer;
   private final VelocityVoltage shooterVoltage = new VelocityVoltage(0).withSlot(0);
   public static boolean isStuck = false;
-  
   private final Timer timer = new Timer();
+  private final Timer stuckTimer = new Timer();
+  private static boolean wasStuck = false;
   private boolean autoShootStarted = false;
   
     /** Creates a new FuelSubsystem. */
@@ -99,9 +100,27 @@ public class FuelSubsystem extends SubsystemBase {
     }
   
     public void intake (){
+      if (isStuck){
+        if (!wasStuck){
+          stuckTimer.restart();
+          wasStuck = true;
+        }
+        if (stuckTimer.get() > 1){;
+        indexer.stopMotor();
+        leftShooter.set(-FuelConstants.shootingIntakeSpeed);
+        rightShooter.set(-FuelConstants.shootingIntakeSpeed);
+      } else {
+        stuckTimer.stop();
+        stuckTimer.reset();
+      }
+    } else {
+      wasStuck = false;
+      stuckTimer.stop();
+      stuckTimer.reset();
       leftShooter.set(-FuelConstants.targetSpeed);
       rightShooter.set(-FuelConstants.targetSpeed);
       indexer.set(-FuelConstants.targetSpeed);
+    }
     }
 
     public void outake (){

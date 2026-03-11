@@ -39,6 +39,7 @@ public class VisionSubsystem extends SubsystemBase {
     
 
   public final PhotonCamera luma = new PhotonCamera (VisionConstants.kCameraName);
+  public final PhotonCamera driveCamera = new PhotonCamera(VisionConstants.kDriveCameraName);
 
   public final PhotonPoseEstimator poseEstimator = 
   new PhotonPoseEstimator(VisionConstants.kTagLayout,
@@ -61,7 +62,10 @@ public class VisionSubsystem extends SubsystemBase {
       this.estConsumer = estConsumer;
       luma.setFPSLimit(120);
       luma.setDriverMode(false);
-      alignControl.setTolerance(1.0);
+      alignControl.setTolerance(5);
+
+      driveCamera.setFPSLimit(30);
+      driveCamera.setDriverMode(true);
       lastTargetSeenTime = 0;
   }
 
@@ -111,12 +115,12 @@ public class VisionSubsystem extends SubsystemBase {
           }
 
           if (isRedAlliance){
-            if (tgt.getFiducialId() >= 8 && tgt.getFiducialId() <= 11)
+            if (tgt.getFiducialId() == 8 || tgt.getFiducialId() == 10 || tgt.getFiducialId() == 11)
           {
             avgYaw += tgt.getYaw();
             matchingTags ++;
           }} else {
-            if (tgt.getFiducialId() >= 24 && tgt.getFiducialId() <= 27){ 
+            if (tgt.getFiducialId() == 24 || tgt.getFiducialId() == 26 || tgt.getFiducialId() == 27){ 
             avgYaw += tgt.getYaw();
             matchingTags ++;
             }
@@ -125,6 +129,7 @@ public class VisionSubsystem extends SubsystemBase {
 
           double dist = robotPose.getTranslation().getDistance(tagPose.get().toPose2d().getTranslation());
           if (dist < closestDist){ closestDist = dist;}
+          
 
           VisionConstants.kDistanceToTarget = closestDist;
         } 
@@ -144,6 +149,7 @@ public class VisionSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Y Axis error to target", targetPitch);
     SmartDashboard.putNumber("Distance to target", VisionConstants.kDistanceToTarget);
     SmartDashboard.putNumber("Auto Step", opConstants.autoStep);
+    SmartDashboard.putBoolean("is Aligned", alignControl.atSetpoint());
   }
 
   private void updateEstimationStdDevs(Optional<EstimatedRobotPose>estimatedPose, List <PhotonTrackedTarget> targets){

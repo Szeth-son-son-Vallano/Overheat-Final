@@ -11,9 +11,11 @@ import frc.robot.Subsystems.ClimbSubsystem;
 public class ClimbDownCommand extends Command {
   /** Creates a new ClimbDownCommand. */
   public static ClimbSubsystem m_climbSubsystem;
-  public ClimbDownCommand(ClimbSubsystem climber) {
+  private static double m_target;
+  public ClimbDownCommand(ClimbSubsystem climber, double targetPos) {
 
     m_climbSubsystem = climber;
+    m_target = targetPos;
     // Use addRequirements() here to declare subsystem dependencies.
 
     addRequirements(m_climbSubsystem);
@@ -26,7 +28,7 @@ public class ClimbDownCommand extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_climbSubsystem.climbDown();
+    m_climbSubsystem.climbDown(m_target);
   }
 
   // Called once the command ends or is interrupted.

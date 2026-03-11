@@ -4,11 +4,14 @@
 
 package frc.robot.Autos;
 
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.ClimbSubsystem;
 import frc.robot.Subsystems.DriveSubsystem;
 import frc.robot.Subsystems.FuelSubsystem;
 import frc.robot.Subsystems.VisionSubsystem;
+import frc.robot.Constants.ClimbConstants;
+import frc.robot.Constants.FuelConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.Constants.opConstants;
 import frc.robot.Constants.towerAutoConstants;
@@ -20,6 +23,9 @@ public class TowerAuto extends Command {
   private final DriveSubsystem m_drive;
   private final FuelSubsystem m_fuel;
   private final ClimbSubsystem m_climb;
+
+  private final Timer climbTimer = new Timer();
+  private boolean climbTimerStarted = false;
 
   public TowerAuto(VisionSubsystem vision, DriveSubsystem drive, FuelSubsystem fuel, ClimbSubsystem climb) {
     m_vision = vision;
@@ -33,18 +39,37 @@ public class TowerAuto extends Command {
 
   // Called when the command is initially scheduled.
   @Override
-  public void initialize() {}
+  public void initialize() {
+    opConstants.autoStep = 0;
+    m_drive.resetOdometry();
+    m_drive.resetGyro();
+    climbTimer.stop();
+    climbTimer.reset();
+    climbTimerStarted = false;
+  }
 
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
     switch (opConstants.autoStep) {
       case 0:
-        m_drive.driveToTarget(towerAutoConstants.drive2Meters);
+      m_climb.climbUp();
+      if (!climbTimerStarted){
+        climbTimer.restart();
+        climbTimerStarted = true;
+      }
+      if (climbTimer.get() > 4){
+      m_drive.driveToTarget(m_drive.getEncoderPose(), towerAutoConstants.driveMeters);
+        if (m_drive.getEncoderPose() > towerAutoConstants.driveMeters){
+          opConstants.autoStep++;
+        }
+      } else {
+        m_drive.stopDrive();
+      }
         break;
       case 1:
         m_drive.align(m_vision.hasRecentTarget(), m_vision.isAligned());
-        FuelSubsystem.getShooterSpeedFromDistance(VisionConstants.kDistanceToTarget);
+        FuelConstants.targetVelocity = FuelSubsystem.getShooterSpeedFromDistance(VisionConstants.kDistanceToTarget);
         if (m_vision.isAligned()){opConstants.autoStep++;}
         break;
       case 2:
@@ -53,19 +78,16 @@ public class TowerAuto extends Command {
       case 3:
         m_drive.rotate(0);
         break;
-      case 4 :
-        m_drive.driveToTarget(VisionConstants.kDistanceToTarget - 4);
-      default:
-      case 5:
-        m_climb.climbDown();
-        break;
+      case 4:
+        m_climb.climbDown(ClimbConstants.climbDownPos);
     }
   }
 
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    m_climb.climbUp();
+    m_drive.stopDrive();
+    m_fuel.stop();
   }
   
 
