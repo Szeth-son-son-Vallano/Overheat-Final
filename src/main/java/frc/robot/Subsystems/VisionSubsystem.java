@@ -36,6 +36,8 @@ public class VisionSubsystem extends SubsystemBase {
      new Translation3d(VisionConstants.camX, VisionConstants.camY, VisionConstants.camZ),
      new Rotation3d(VisionConstants.camRoll, -VisionConstants.camPitch, VisionConstants.camYaw));
   private Matrix<N3,N1> curStdDevs = VisionConstants.kSingleStdDev;
+
+  public double targetYaw;
     
 
   public final PhotonCamera luma = new PhotonCamera (VisionConstants.kCameraName);
@@ -62,7 +64,7 @@ public class VisionSubsystem extends SubsystemBase {
       this.estConsumer = estConsumer;
       luma.setFPSLimit(120);
       luma.setDriverMode(false);
-      alignControl.setTolerance(5);
+      alignControl.setTolerance(5.0);
 
       driveCamera.setFPSLimit(30);
       driveCamera.setDriverMode(true);
@@ -75,7 +77,6 @@ public class VisionSubsystem extends SubsystemBase {
     double avgYaw = 0;
     int matchingTags = 0;
     boolean targetVisible = false;
-    double targetYaw = 0;
     double targetPitch = 0;
     
     boolean isRedAlliance = 
@@ -83,8 +84,8 @@ public class VisionSubsystem extends SubsystemBase {
     && DriverStation.getAlliance().get() == DriverStation.Alliance.Red;
     
     Optional<EstimatedRobotPose> visionEst = Optional.empty();
-    
-    for(var identified : results){
+    //Estimate the robotPose using AprilTags
+    for(var identified : results){ 
       visionEst = poseEstimator.estimateCoprocMultiTagPose(identified);
       if (visionEst.isEmpty()){
         visionEst = poseEstimator.estimateLowestAmbiguityPose(identified);
@@ -92,6 +93,7 @@ public class VisionSubsystem extends SubsystemBase {
       updateEstimationStdDevs(visionEst,identified.getTargets());
     }
 
+    //Calculate distance and yaw to target
     if (visionEst.isPresent()) {
       var est = visionEst.get();
       var estStdDevs = getEstimationStdDevs();
@@ -122,22 +124,24 @@ public class VisionSubsystem extends SubsystemBase {
           }} else {
             if (tgt.getFiducialId() == 24 || tgt.getFiducialId() == 26 || tgt.getFiducialId() == 27){ 
             avgYaw += tgt.getYaw();
+            targetYaw = avgYaw;
             matchingTags ++;
             }
           }
 
 
           double dist = robotPose.getTranslation().getDistance(tagPose.get().toPose2d().getTranslation());
-          if (dist < closestDist){ closestDist = dist;}
+          closestDist = dist;
           
 
           VisionConstants.kDistanceToTarget = closestDist;
         } 
       } 
+      //Set Align Control
       if (matchingTags > 0){
           avgYaw = avgYaw/matchingTags;
           VisionConstants.rotationOutput = alignControl.calculate(
-            avgYaw - VisionConstants.cameraOffset, 0);
+            avgYaw, 0);
           }
       
       estConsumer.accept(est.estimatedPose.toPose2d(), est.timestampSeconds, estStdDevs);
@@ -145,13 +149,16 @@ public class VisionSubsystem extends SubsystemBase {
 
     // This method will be called once per scheduler run
     SmartDashboard.putBoolean("Is target visible", targetVisible);
-    SmartDashboard.putNumber("X Axis error to target ", targetYaw);
+    SmartDashboard.putNumber("X Axis error to target ", avgYaw);
     SmartDashboard.putNumber("Y Axis error to target", targetPitch);
     SmartDashboard.putNumber("Distance to target", VisionConstants.kDistanceToTarget);
     SmartDashboard.putNumber("Auto Step", opConstants.autoStep);
-    SmartDashboard.putBoolean("is Aligned", alignControl.atSetpoint());
+    SmartDashboard.putNumber("Output", VisionConstants.rotationOutput);
+    SmartDashboard.putBoolean("is Aligned", isAligned());
+    SmartDashboard.putBoolean("Has recent target:", hasRecentTarget());
   }
 
+  //Updates the Standar Deviation Based on April Tags in the POV
   private void updateEstimationStdDevs(Optional<EstimatedRobotPose>estimatedPose, List <PhotonTrackedTarget> targets){
     if(estimatedPose.isEmpty()){
       curStdDevs = VisionConstants.kSingleStdDev;
@@ -184,17 +191,21 @@ public class VisionSubsystem extends SubsystemBase {
     }
   }
 
+  //Has the camera upgraded info?
   public boolean hasRecentTarget() {
     return (Timer.getFPGATimestamp() - lastTargetSeenTime < 0.5); 
   }
-
+  //Is the robot Aligned?
   public boolean isAligned (){
-    return (alignControl.atSetpoint());
+    //return (alignControl.atSetpoint());
+    return (targetYaw < 10 && targetYaw > -10);
   }
 
+  //Sets the Standard Deviation
   public Matrix<N3,N1> getEstimationStdDevs(){
     return curStdDevs;
   }
+  //Functional interface for Drive pose
   @FunctionalInterface
   public static interface EstimateConsumer {
     public void accept(Pose2d pose, double timestamp, Matrix<N3,N1> estimationDevs);

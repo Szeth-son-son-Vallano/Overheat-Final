@@ -50,10 +50,9 @@ public class DriveSubsystem extends SubsystemBase {
   private static Pigeon2 drivePigeon;
 
   private final DifferentialDrive robotDrive;
-  private final PIDController driveController;
   private final PIDController alignController;
 
-
+  //Odometry Conversion Constantss
   private static final double wheelDiameter = Units.inchesToMeters(6);
   private static final double gearRatio = 8.46;
   private static final double positionFactor = ((1/gearRatio) * (Math.PI * wheelDiameter));
@@ -69,16 +68,12 @@ public class DriveSubsystem extends SubsystemBase {
   private static double distanceTraveled;
   
   
-    public DriveSubsystem() {
+    public DriveSubsystem() { 
       leftLeader = new SparkMax(DriveConstants.leftLeaderID, MotorType.kBrushless);
       rightLeader = new SparkMax(DriveConstants.rightLeaderID, MotorType.kBrushless);
       leftFollower = new SparkMax(DriveConstants.leftFollowerID, MotorType.kBrushless);
       rightFollower = new SparkMax(DriveConstants.rightFollowerID, MotorType.kBrushless);
       drivePigeon = new Pigeon2(12);
-      driveController = new PIDController
-      (DriveConstants.kDriveP, DriveConstants.kDriveI, DriveConstants.kDriveD);
-      driveController.setTolerance(0.05);
-
       alignController = new PIDController
       (DriveConstants.kAlignP, DriveConstants.kAlignI, DriveConstants.kAlignD);
       alignController.setTolerance(0.05);
@@ -98,6 +93,7 @@ public class DriveSubsystem extends SubsystemBase {
       .idleMode(IdleMode.kCoast)
       .apply(encoderConfig);
 
+      //Left Drive PID
       leftConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).
       p(DriveConstants.kDriveP).i(DriveConstants.kDriveI).d(DriveConstants.kDriveD).
       outputRange(-1, 1);
@@ -108,6 +104,7 @@ public class DriveSubsystem extends SubsystemBase {
       .smartCurrentLimit(50).idleMode(IdleMode.kCoast)
       .apply(encoderConfig);
 
+      //Right Drive PID
       rightConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).
       p(DriveConstants.kDriveP).i(DriveConstants.kDriveI).d(DriveConstants.kDriveD).
       outputRange(-1, 1);
@@ -124,6 +121,7 @@ public class DriveSubsystem extends SubsystemBase {
       rightLeaderEncoder.setPosition(0);
       leftLeaderEncoder.setPosition(0);
 
+      //Kinematics and odometry
       driveKinematics = new DifferentialDriveKinematics(DriveConstants.kTrackWidthMeters);
       robotDrive = new DifferentialDrive(leftLeader::set, rightLeader::set);
   
@@ -137,10 +135,6 @@ public class DriveSubsystem extends SubsystemBase {
       );
 
     drivePigeon.setYaw(0);
-
-    field.setRobotPose(3.272, 4.035, drivePigeon.getRotation2d());
-    SmartDashboard.putData("Field " ,field);
-    
 
   }
 
@@ -156,10 +150,12 @@ public class DriveSubsystem extends SubsystemBase {
     
   }
 
+  //Drive with Controller
   public void driveArcade (double xSpeed, double xRotation, boolean squared){
     robotDrive.arcadeDrive(xSpeed, xRotation,squared);
   }
 
+  //Drive to a target distance using PID
   public void driveToTarget(double currentPos, double distanceToTarget){
     distanceTraveled = leftLeaderEncoder.getPosition();
    leftController.setSetpoint(distanceToTarget, SparkBase.ControlType.kPosition);
@@ -176,6 +172,7 @@ public class DriveSubsystem extends SubsystemBase {
   }
   
 
+  //Odometry Reset
   public void resetOdometry (){
     leftLeaderEncoder.setPosition(0);
     rightLeaderEncoder.setPosition(0);
@@ -183,6 +180,7 @@ public class DriveSubsystem extends SubsystemBase {
       getHeading(),0.0,0.0, new Pose2d());
   }
 
+  //Get feedback from drive motors
   public double getEncoderPose(){
     double leftPos = leftLeaderEncoder.getPosition();
     double rightPos = rightLeaderEncoder.getPosition();
@@ -192,14 +190,17 @@ public class DriveSubsystem extends SubsystemBase {
     return currentPos;
   }
 
+  //Pigeon Reset
   public void resetGyro (){
     drivePigeon.setYaw(0);
   }
 
+  //Stops drive
   public void stopDrive() {
     robotDrive.arcadeDrive(0, 0);
   }
 
+  //Align with camera
   public void align(boolean hasTarget, boolean isAligned){
     if (!hasTarget){
       robotDrive.arcadeDrive(0, 0);
@@ -212,15 +213,18 @@ public class DriveSubsystem extends SubsystemBase {
     }
   }
 
+  //Add vision pose and distance to the robot
   public void addVisionMeasurement(
     Pose2d visionMeasurement, double timestampSeconds, Matrix<N3,N1> stdDevs){
       poseEstimator.addVisionMeasurement(visionMeasurement, timestampSeconds,stdDevs);
     }
 
+  //Sets robot pose
   public Pose2d getPose(){
     return poseEstimator.getEstimatedPosition();
   }
 
+  //Rotates with PID to a target gyro angle
   public void rotate(double targetHeading){
     double output = alignController.calculate(
       drivePigeon.getYaw().getValueAsDouble(), targetHeading);
@@ -233,6 +237,7 @@ public class DriveSubsystem extends SubsystemBase {
     }
   }
 
+  //Gets pigeon angle as a Rotation 2d
   public Rotation2d getHeading(){
     return drivePigeon.getRotation2d();
   }

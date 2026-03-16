@@ -18,6 +18,7 @@ import frc.robot.Commands.IntakeCommand;
 import frc.robot.Commands.OutakeCommand;
 import frc.robot.Commands.PassCommand;
 import frc.robot.Commands.ReturnToZeroCommand;
+import frc.robot.Commands.SetToMaxCommand;
 import frc.robot.Commands.ShootCommand;
 import frc.robot.Constants.ClimbConstants;
 import frc.robot.Constants.FuelConstants;
@@ -36,14 +37,15 @@ public class RobotContainer {
   private Command towerAuto; 
 
   SendableChooser <Command> m_Chooser = new SendableChooser<>();
-  private final CommandXboxController m_controller = 
+  
+  public final CommandXboxController m_controller = 
   new CommandXboxController(opConstants.driveControllerID);
 
   private final CommandXboxController m_opController = 
   new CommandXboxController(opConstants.opControllerID);
 
   public RobotContainer() {
-    m_vision = new VisionSubsystem(m_drive::addVisionMeasurement);
+    m_vision = new VisionSubsystem(m_drive::addVisionMeasurement); //Add estConsumer to Vision
     towerAuto = new TowerAuto(m_vision, m_drive, m_fuel, m_climb);
     configureBindings();
     m_Chooser.setDefaultOption("Tower Auto", towerAuto);
@@ -54,37 +56,36 @@ public class RobotContainer {
     m_drive.setDefaultCommand(new DriveCommand(m_drive,
      () -> -m_controller.getLeftY()*(0.35 + (0.65 * m_controller.getRightTriggerAxis())),
      () -> -m_controller.getRightX(),
-     () -> false));
+     () -> false)); //Drive Command
      
     m_controller.rightBumper().whileTrue(
-      new ShootCommand(m_fuel, FuelConstants.targetSpeed));
+      new ShootCommand(m_fuel, FuelConstants.targetSpeed)); //Shoot
 
     m_controller.leftBumper().whileTrue(
-      new IntakeCommand(m_fuel, FuelConstants.targetSpeed));
+      new IntakeCommand(m_fuel, FuelConstants.targetSpeed)); //Intake
 
     m_controller.leftTrigger().whileTrue(
-      new PassCommand(m_fuel, FuelConstants.targetSpeed));
+      new PassCommand(m_fuel, FuelConstants.targetSpeed)); //Pass
 
     m_controller.y().whileTrue(
-      new OutakeCommand(m_fuel, FuelConstants.targetSpeed));
-
-    m_opController.rightTrigger().onTrue(
-      new ClimbUpCommand(m_climb)); // Declimb
-
-    m_opController.leftTrigger().onTrue(
-      new ClimbDownCommand(m_climb, ClimbConstants.climbL2Pos)); // Climb
-
-    m_opController.x().onTrue(
-      new ClimbDownCommand(m_climb, ClimbConstants.climbDownPos)); // Returns to zero from any position if the zero is well setted
-
-    m_opController.rightBumper().onTrue(
-      new ReturnToZeroCommand(m_climb, -ClimbConstants.climbUpPos)); // Returns to zero from declimb pos
-
-    m_opController.leftBumper().onTrue(
-      new ReturnToZeroCommand(m_climb, -ClimbConstants.climbDownPos)); //Returns to zero from climb pos
+      new OutakeCommand(m_fuel, FuelConstants.targetSpeed)); //Outake
 
     m_controller.povLeft().whileTrue(
-      new AlignCommand(m_drive, m_vision));
+      new AlignCommand(m_drive, m_vision)); //Auto Align
+
+    m_opController.rightTrigger().whileTrue(
+      new ClimbUpCommand(m_climb)); // Declimb
+
+    m_opController.leftTrigger().whileTrue(
+      new ClimbDownCommand(m_climb, ClimbConstants.climbL2Pos)); // L2 Climb
+
+
+    m_opController.a().and(m_opController.x()).whileTrue(
+      new ReturnToZeroCommand(m_climb, -ClimbConstants.climbUpPos +10)); 
+
+    m_opController.b().and(m_opController.y()).whileTrue(
+      new SetToMaxCommand(m_climb));
+
   }
 
   public Command getAutonomousCommand() {

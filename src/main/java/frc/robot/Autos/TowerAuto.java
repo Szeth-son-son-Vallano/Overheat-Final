@@ -4,6 +4,8 @@
 
 package frc.robot.Autos;
 
+import java.security.cert.X509CRL;
+
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.ClimbSubsystem;
@@ -60,7 +62,7 @@ public class TowerAuto extends Command {
       }
       if (climbTimer.get() > 4){
       m_drive.driveToTarget(m_drive.getEncoderPose(), towerAutoConstants.driveMeters);
-        if (m_drive.getEncoderPose() > towerAutoConstants.driveMeters){
+        if (m_drive.getEncoderPose() > towerAutoConstants.driveMeters || climbTimer.get() > 8){
           opConstants.autoStep++;
         }
       } else {
@@ -70,16 +72,18 @@ public class TowerAuto extends Command {
       case 1:
         m_drive.align(m_vision.hasRecentTarget(), m_vision.isAligned());
         FuelConstants.targetVelocity = FuelSubsystem.getShooterSpeedFromDistance(VisionConstants.kDistanceToTarget);
-        if (m_vision.isAligned()){opConstants.autoStep++;}
+        if (m_vision.isAligned() || climbTimer.get() > 10){opConstants.autoStep++;}
         break;
       case 2:
+        m_drive.getEncoderPose();
         m_fuel.autoShoot();
         break;
       case 3:
-        m_drive.rotate(0);
+        opConstants.autoStep ++;
         break;
       case 4:
-        m_climb.climbDown(ClimbConstants.climbDownPos);
+        m_drive.getEncoderPose();
+        m_climb.climbDown(ClimbConstants.climbL1Pos);
     }
   }
 
@@ -88,6 +92,7 @@ public class TowerAuto extends Command {
   public void end(boolean interrupted) {
     m_drive.stopDrive();
     m_fuel.stop();
+    m_climb.stopClimb();
   }
   
 

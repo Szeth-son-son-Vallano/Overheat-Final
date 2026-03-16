@@ -7,6 +7,7 @@ import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -22,7 +23,9 @@ public class ClimbSubsystem extends SubsystemBase {
 
     var climbConfig = new TalonFXConfiguration();
     var climbCurrentLimits = new CurrentLimitsConfigs();
-
+    
+    climbConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    //Climber PID Control
     climbConfig.Slot1.kP = ClimbConstants.kClimberP;
     climbConfig.Slot1.kI = ClimbConstants.kClimberI;
     climbConfig.Slot1.kD = ClimbConstants.kClimberD;
@@ -42,7 +45,7 @@ public class ClimbSubsystem extends SubsystemBase {
     // This method will be called once per scheduler run
     SmartDashboard.putNumber("Climber Position ", climbMotor.getPosition().getValueAsDouble());
     SmartDashboard.putNumber("Climb target ", ClimbConstants.climbUpPos);
-    SmartDashboard.putNumber("Climb down target ", ClimbConstants.climbDownPos);
+    SmartDashboard.putNumber("Climb down target ", ClimbConstants.climbL1Pos);
   }
 
   public void climbUp(){
@@ -53,15 +56,19 @@ public class ClimbSubsystem extends SubsystemBase {
     climbMotor.setControl(climbVoltage.withPosition(targetPos)); // start to climb
   }
 
-  public void setZero(){
-    climbMotor.setControl(climbVoltage.withPosition(0));
-  }
-
   public void returnToZero (Double targetPos){
-    climbMotor.setControl(climbVoltage.withPosition(targetPos));
+    climbMotor.setControl(climbVoltage.withPosition(targetPos)); //Returns to zero after the robot is off
   }
 
+  //Stops climb
   public void stopClimb (){
     climbMotor.stopMotor();
   }
+  public void setZero(){
+    climbMotor.setPosition(0);
+  }
+  public void setToMax (){
+    climbMotor.setPosition(ClimbConstants.climbUpPos);
+  }
 }
+

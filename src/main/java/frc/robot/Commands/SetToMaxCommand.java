@@ -8,14 +8,12 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.ClimbSubsystem;
 
 /* You should consider using the more terse Command factories API instead https://docs.wpilib.org/en/stable/docs/software/commandbased/organizing-command-based.html#defining-commands */
-public class SetZeroCommand extends Command {
-  /** Creates a new SetZeroCommand. */
+public class SetToMaxCommand extends Command {
+  /** Creates a new SetToMaxCommand. */
   private final ClimbSubsystem m_climber;
-  public SetZeroCommand(ClimbSubsystem climber) {
+  public SetToMaxCommand(ClimbSubsystem climb) {
+    m_climber = climb;
     // Use addRequirements() here to declare subsystem dependencies.
-
-    m_climber = climber;
-    addRequirements(m_climber);
   }
 
   // Called when the command is initially scheduled.
@@ -25,7 +23,7 @@ public class SetZeroCommand extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_climber.setZero();
+    m_climber.setToMax();
   }
 
   // Called once the command ends or is interrupted.

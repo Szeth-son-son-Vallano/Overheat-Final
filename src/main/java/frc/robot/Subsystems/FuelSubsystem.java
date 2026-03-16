@@ -11,6 +11,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.FuelConstants;
@@ -25,8 +26,9 @@ public class FuelSubsystem extends SubsystemBase {
   public static boolean isStuck = false;
   private final Timer timer = new Timer();
   private final Timer stuckTimer = new Timer();
-  private static boolean wasStuck = false;
+  private boolean wasStuck = false;
   private boolean autoShootStarted = false;
+  private final XboxController m_controller = new XboxController(0);
   
     /** Creates a new FuelSubsystem. */
     public FuelSubsystem() {
@@ -39,6 +41,7 @@ public class FuelSubsystem extends SubsystemBase {
       var indexerConfig = new TalonFXConfiguration();
       var currentLimits = new CurrentLimitsConfigs();
 
+      //Shooter PID configfs
       leftConfig.Slot0.kS = FuelConstants.kShooterS; 
       leftConfig.Slot0.kV = FuelConstants.kShooterV; 
       leftConfig.Slot0.kA = FuelConstants.kShooterA;
@@ -51,6 +54,7 @@ public class FuelSubsystem extends SubsystemBase {
       
       leftConfig.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
 
+      //Shooter PID Configurations
       rightConfig.Slot0.kS = FuelConstants.kShooterS;
       rightConfig.Slot0.kV = FuelConstants.kShooterV;
       rightConfig.Slot0.kA = FuelConstants.kShooterA;
@@ -78,7 +82,7 @@ public class FuelSubsystem extends SubsystemBase {
   
     @Override
     public void periodic() {
-
+      //Sets a SmartDashboard Signal if the intake is Stuck
       if (indexer.getStatorCurrent().getValueAsDouble() > 55){
         isStuck = true;
       } else {
@@ -91,14 +95,16 @@ public class FuelSubsystem extends SubsystemBase {
       SmartDashboard.putBoolean("is the Intake Stuck? ", isStuck);
     }
   
+    //Gets distance to target, then shoots
     public void shoot(){
-      FuelConstants.targetVelocity = getShooterSpeedFromDistance(VisionConstants.kDistanceToTarget);
-      leftShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
-      rightShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
+      FuelConstants.targetVelocity = getShooterSpeedFromDistance((VisionConstants.kDistanceToTarget - (m_controller.getLeftTriggerAxis() * 20)));
+      leftShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity ));
+      rightShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity ));
     if (leftShooter.getVelocity().getValueAsDouble() < -FuelConstants.targetVelocity + 1){
       indexer.set(FuelConstants.targetSpeed);}
     }
-  
+    
+    //Intakes Fuel, if Stuck, intake as shooter mode
     public void intake (){
       if (isStuck){
         if (!wasStuck){
@@ -123,17 +129,20 @@ public class FuelSubsystem extends SubsystemBase {
     }
     }
 
+    //Ejects Fuel
     public void outake (){
       leftShooter.set(FuelConstants.targetSpeed);
       rightShooter.set(FuelConstants.targetSpeed);
       indexer.set(FuelConstants.targetSpeed);
     }
 
+    //Pass to hopper as if it was shooting
     public void pass (){
       leftShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.shootingIntakeSpeed));
       rightShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.shootingIntakeSpeed));
     }
 
+    //Gets shooting power by comparing the distance to the FuelConstants.kShooterTable info
     public static double getShooterSpeedFromDistance(double distance){
       double[][] table = FuelConstants.kShooterTable;
 
@@ -149,32 +158,33 @@ public class FuelSubsystem extends SubsystemBase {
       return table[table.length - 1][1];
     }
 
- public void stop(){
-  leftShooter.set(0);
-  rightShooter.set(0);
-  indexer.set(0);
- }
-
- public void autoShoot (){
-  if (!autoShootStarted){
-    timer.restart();
-    autoShootStarted = true;
+  //Stops the shooter and indexer motors
+  public void stop(){
+    leftShooter.set(0);
+    rightShooter.set(0);
+    indexer.set(0);
   }
-  if (timer.get() < 4){
-    if (timer.get() < 1.5){
-      leftShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
-      rightShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
-    } else if (timer.get() > 1.5) {
-      indexer.set(FuelConstants.targetSpeed);
-      leftShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
-      rightShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
+  //Timed Shoot command for auto
+  public void autoShoot (){
+    if (!autoShootStarted){
+      timer.restart();
+      autoShootStarted = true;
     }
-  } else {
-    leftShooter.stopMotor();
-    rightShooter.stopMotor();
-    indexer.stopMotor();
-    autoShootStarted = false;
-    opConstants.autoStep++;
+    if (timer.get() < 4){
+      if (timer.get() < 1.5){
+        leftShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
+        rightShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
+      } else if (timer.get() > 1.5) {
+        indexer.set(FuelConstants.targetSpeed);
+        leftShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
+        rightShooter.setControl(shooterVoltage.withVelocity(-FuelConstants.targetVelocity));
+      }
+    } else {
+      leftShooter.stopMotor();
+      rightShooter.stopMotor();
+      indexer.stopMotor();
+      autoShootStarted = false;
+      opConstants.autoStep++;
   }
  }
 }
